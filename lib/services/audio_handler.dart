@@ -37,7 +37,9 @@ class RadioAudioHandler extends BaseAudioHandler with SeekHandler {
 
   RadioAudioHandler() {
     // Broadcast playback state changes to the system.
-    _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
+    _player.playbackEventStream.map(_transformEvent).listen((state) {
+      playbackState.add(state);
+    });
 
     // Listen to ICY metadata (Icecast/Shoutcast) for current song info.
     _player.icyMetadataStream.listen((metadata) {
