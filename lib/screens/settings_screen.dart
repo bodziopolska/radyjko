@@ -99,11 +99,37 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // About section
+          const Divider(),
+          _buildSectionHeader(theme, 'Konto w chmurze'),
+          if (auth.isAuthenticated)
+            ListTile(
+              leading: const Icon(Icons.cloud_done, color: Colors.green),
+              title: Text(auth.user?.displayName ?? 'Zalogowano', style: theme.textTheme.titleMedium),
+              subtitle: Text(auth.user?.email ?? '', style: theme.textTheme.bodySmall),
+              trailing: TextButton(
+                onPressed: () => auth.signOut(),
+                child: const Text('Wyloguj'),
+              ),
+            )
+          else
+            ListTile(
+              leading: const Icon(Icons.cloud_sync, color: Colors.blue),
+              title: Text('Zapisuj ulubione w chmurze', style: theme.textTheme.titleMedium),
+              subtitle: Text('Zaloguj się, aby odzyskać stacje na nowym telefonie', style: theme.textTheme.bodySmall),
+              trailing: auth.isLoading
+                  ? const CircularProgressIndicator()
+                  : FilledButton.icon(
+                      icon: const Icon(Icons.login, size: 18),
+                      label: const Text('Zaloguj z Google'),
+                      onPressed: () => auth.signInWithGoogle(),
+                    ),
+            ),
+          const Divider(),
           _buildSectionHeader(theme, strings.about),
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: Text(strings.appName),
-            subtitle: Text('${strings.version} 1.0.0'),
+            subtitle: Text('${strings.version} 1.0.2 (Build 3)'),
           ),
           ListTile(
             leading: const Icon(Icons.cloud_queue),
@@ -128,4 +154,5 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
+
 
