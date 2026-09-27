@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_strings.dart';
 
+class UpdateService {
   // Bezpośredni link do pliku version.json na GitHub
   static const String _versionUrl =
       'https://raw.githubusercontent.com/bodziopolska/radyjko/main/version.json';
