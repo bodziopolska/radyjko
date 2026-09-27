@@ -1,13 +1,13 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 
 /// Audio handler that integrates just_audio with audio_service for
 /// background playback and system notification controls.
-class RadioAudioHandler extends BaseAudioHandler {
+class RadioAudioHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player = AudioPlayer();
 
-  /// Decodes HTML entities like &#281; -> Ä™, &#x142; -> Ĺ‚, &amp; -> &
+  /// Decodes HTML entities like &#281; -> ę, &#x142; -> ł, &amp; -> &
   static String _decodeHtmlEntities(String text) {
     // Decode numeric entities: &#NNN;
     text = text.replaceAllMapped(
@@ -31,10 +31,14 @@ class RadioAudioHandler extends BaseAudioHandler {
 
   AudioPlayer get player => _player;
 
+  /// Whether the stream is logically "paused" (stopped but resumable).
+  bool _isPaused = false;
+  bool get isPaused => _isPaused;
+
   RadioAudioHandler() {
     // Broadcast playback state changes to the system.
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
-    
+
     // Listen to ICY metadata (Icecast/Shoutcast) for current song info.
     _player.icyMetadataStream.listen((metadata) {
       final currentItem = mediaItem.value;
@@ -53,16 +57,47 @@ class RadioAudioHandler extends BaseAudioHandler {
 
   /// Plays the current media item (radio station stream).
   @override
-  Future<void> play() async { if (mediaItem.value != null) { _player.setUrl(mediaItem.value!.id).catchError((_) {}); await _player.play(); } else { await _player.play(); } }
+  Future<void> play() async {
+    _isPaused = false;
+    if (mediaItem.value != null) {
+      _player.setUrl(mediaItem.value!.id).catchError((_) => null);
+      await _player.play();
+    } else {
+      await _player.play();
+    }
+  }
 
   /// Pauses the current stream.
+  /// For live radio we must stop the player to avoid wasting data,
+  /// but we keep the mediaItem and show a "paused" notification.
   @override
-  Future<void> pause() async { await _player.stop(); }
+  Future<void> pause() async {
+    _isPaused = true;
+    await _player.stop();
+    // Manually emit a "paused" playback state so the notification stays
+    // visible with a Play button instead of disappearing.
+    playbackState.add(PlaybackState(
+      controls: [
+        MediaControl.play,
+        MediaControl.stop,
+      ],
+      systemActions: const {
+        MediaAction.play,
+        MediaAction.stop,
+      },
+      androidCompactActionIndices: const [0, 1],
+      processingState: AudioProcessingState.ready,
+      playing: false,
+    ));
+  }
 
-  /// Stops playback and clears the notification.
+  /// Stops playback completely and dismisses the notification.
   @override
   Future<void> stop() async {
+    _isPaused = false;
     await _player.stop();
+    // Clear media item so the notification disappears.
+    mediaItem.add(null);
     await super.stop();
   }
 
@@ -74,7 +109,6 @@ class RadioAudioHandler extends BaseAudioHandler {
     exit(0);
   }
 
-
   /// Sets a new radio station URL and starts playing.
   Future<void> playStation({
     required String url,
@@ -82,6 +116,7 @@ class RadioAudioHandler extends BaseAudioHandler {
     String? artUri,
     String? album,
   }) async {
+    _isPaused = false;
     // Update the media item metadata shown in the notification.
     final item = MediaItem(
       id: url,
@@ -93,13 +128,11 @@ class RadioAudioHandler extends BaseAudioHandler {
     mediaItem.add(item);
 
     try {
-      // Don't await setUrl for radio streams as it blocks until buffering is done,
-      // keeping the playing state false and making the UI look stopped.
-      _player.setUrl(url).catchError((_) {});
+      // Don't await setUrl for radio streams as it blocks until buffering is done.
+      _player.setUrl(url).catchError((_) => null);
       await _player.play();
     } catch (e) {
-      // Propagate the error through playback state.
-      // błąd jest propagowany przez strumień just_audio
+      // Error is propagated through the just_audio event stream.
     }
   }
 
@@ -107,8 +140,6 @@ class RadioAudioHandler extends BaseAudioHandler {
     final currentItem = mediaItem.value;
     if (currentItem != null) {
       final uri = (artUri != null && artUri.isNotEmpty) ? Uri.tryParse(artUri) : null;
-      // If uri is null, we have to use a trick because copyWith(artUri: null) might not override if it's not explicitly supported, wait, copyWith in audio_service supports setting null? No, MediaItem.copyWith doesn't let you null out a property easily unless you recreate it or it handles it. Let's see...
-      // Actually MediaItem copyWith in audio_service: it uses null check rtUri ?? this.artUri. To clear it, we might have to recreate the MediaItem.
       mediaItem.add(MediaItem(
         id: currentItem.id,
         title: currentItem.title,
@@ -163,22 +194,3 @@ class RadioAudioHandler extends BaseAudioHandler {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

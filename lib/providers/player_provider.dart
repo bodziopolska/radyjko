@@ -150,12 +150,21 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> pause() => _handler.pause();
+  Future<void> pause() async {
+    await _handler.pause();
+    _isPlaying = false;
+    _updateTile();
+    notifyListeners();
+  }
+
   Future<void> resume() => _handler.play();
 
+  /// Completely stops playback, clears the current station, and dismisses the notification.
   Future<void> stop() async {
     await _handler.stop();
     _currentStation = null;
+    _currentSong = null;
+    _currentArtwork = null;
     _isPlaying = false;
     _isBuffering = false;
     _updateTile();

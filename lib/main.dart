@@ -1,8 +1,8 @@
-﻿import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'providers/radio_provider.dart';
 import 'providers/player_provider.dart';
 import 'providers/settings_provider.dart';
@@ -13,12 +13,8 @@ import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 
 late RadioAudioHandler _audioHandler;
-
-
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -34,7 +30,6 @@ Future<void> main() async {
 
   await Permission.notification.request();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Configure audio session for background playback
   final session = await AudioSession.instance;
@@ -47,7 +42,7 @@ Future<void> main() async {
       androidNotificationChannelId: 'com.radyjkoon.channel.audio',
       androidNotificationChannelName: 'Odtwarzanie Radia',
       androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
+      androidStopForegroundOnPause: false,
       androidNotificationIcon: 'mipmap/ic_launcher',
     ),
   );
@@ -81,7 +76,6 @@ class RadyjkoOnApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme(),
             themeMode: settings.themeMode,
             locale: settings.locale,
-            // Fallback localization delegates could be added here if using material localizations
             home: const HomeScreen(),
           );
         },
@@ -89,14 +83,3 @@ class RadyjkoOnApp extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-

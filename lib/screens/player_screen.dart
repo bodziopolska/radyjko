@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
@@ -218,7 +218,7 @@ class PlayerScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Play/Stop Button
+                  // Play/Pause Button
                   Container(
                     width: 80,
                     height: 80,
@@ -233,13 +233,13 @@ class PlayerScreen extends StatelessWidget {
                           )
                         : IconButton(
                             icon: Icon(
-                              isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                               size: 48,
                               color: theme.colorScheme.onPrimaryContainer,
                             ),
                             onPressed: () {
-                              if (isPlaying) {
-                                playerProvider.stop();
+                                if (isPlaying) {
+                                  playerProvider.pause();
                               } else {
                                 playerProvider.playStation(station);
                               }
