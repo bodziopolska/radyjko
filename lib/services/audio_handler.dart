@@ -53,11 +53,11 @@ class RadioAudioHandler extends BaseAudioHandler {
 
   /// Plays the current media item (radio station stream).
   @override
-  Future<void> play() => _player.play();
+  Future<void> play() async { if (mediaItem.value != null) { _player.setUrl(mediaItem.value!.id).catchError((_) {}); await _player.play(); } else { await _player.play(); } }
 
   /// Pauses the current stream.
   @override
-  Future<void> pause() => _player.pause();
+  Future<void> pause() async { await _player.stop(); }
 
   /// Stops playback and clears the notification.
   @override
@@ -172,6 +172,7 @@ class RadioAudioHandler extends BaseAudioHandler {
     }
   }
 }
+
 
 
 

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../l10n/app_strings.dart';
@@ -31,8 +31,8 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'pl', label: Text('Polski đź‡µđź‡±')),
-                ButtonSegment(value: 'en', label: Text('English đź‡¬đź‡§')),
+                ButtonSegment(value: 'pl', label: Text('Polski 🇵🇱')),
+                ButtonSegment(value: 'en', label: Text('English 🇬🇧')),
               ],
               selected: {settings.locale.languageCode},
               onSelectionChanged: (Set<String> newSelection) {

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +6,7 @@ import 'package:marquee/marquee.dart';
 import '../providers/player_provider.dart';
 import '../providers/radio_provider.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/logo_editor_dialog.dart';
 
 class PlayerScreen extends StatelessWidget {
   const PlayerScreen({super.key});
@@ -57,35 +58,13 @@ class PlayerScreen extends StatelessWidget {
                   }
                   break;
                 case 'custom_logo':
-                  final controller = TextEditingController(text: customLogo ?? '');
                   final result = await showDialog<String>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: Text(strings.setStationLogo),
-                      content: TextField(
-                        controller: controller,
-                        decoration: InputDecoration(
-                          hintText: 'https://example.com/logo.png',
-                          labelText: strings.logoUrl,
-                        ),
-                        keyboardType: TextInputType.url,
+                      context: context,
+                      builder: (ctx) => LogoEditorDialog(
+                        station: station,
+                        currentLogo: customLogo,
                       ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, ''),
-                          child: Text(strings.removeLogo),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: Text(strings.cancel),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(ctx, controller.text),
-                          child: Text(strings.save),
-                        ),
-                      ],
-                    ),
-                  );
+                    );
                   if (result != null) {
                     await radioProvider.setCustomLogo(
                       station.stationUuid,
@@ -365,6 +344,7 @@ class PlayerScreen extends StatelessWidget {
     }
   }
 }
+
 
 
 
