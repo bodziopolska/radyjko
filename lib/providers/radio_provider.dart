@@ -406,8 +406,14 @@ class RadioProvider extends ChangeNotifier {
     try {
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (doc.exists) {
-        final cloudFavs = List<String>.from(doc.data()?['favorites'] ?? []);
-        _favoriteIds.addAll(cloudFavs);
+        final cloudFavs = List<String>.from(doc.data()?['favorites_json'] ?? []);
+        final cloudStations = cloudFavs.map((e) => RadioStation.fromJsonString(e)).toList();
+        for (var station in cloudStations) {
+          if (!_favoriteIds.contains(station.stationUuid)) {
+            _favoriteIds.add(station.stationUuid);
+            _favoriteStations.add(station);
+          }
+        }
         await _saveFavorites();
         notifyListeners();
       }
@@ -420,8 +426,9 @@ class RadioProvider extends ChangeNotifier {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
+      final encoded = _favoriteStations.map((s) => s.toJsonString()).toList();
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'favorites': _favoriteIds.toList(),
+        'favorites_json': encoded,
       }, SetOptions(merge: true));
     } catch (e) {
       debugPrint("Cloud sync write error: $e");
