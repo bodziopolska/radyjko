@@ -30,16 +30,16 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Sprawdź dostępność aktualizacji od razu, nie czekając na ładowanie API radia
+      if (mounted) {
+        UpdateService.checkAndPrompt(context);
+      }
+      
       final radioProvider = context.read<RadioProvider>();
       final playerProvider = context.read<PlayerProvider>();
       await radioProvider.init();
       playerProvider.setItunesDisabledChecker(radioProvider.isItunesDisabled);
       playerProvider.setCustomLogoGetter(radioProvider.getCustomLogo);
-      
-      // Sprawdź dostępność aktualizacji
-      if (mounted) {
-        UpdateService.checkAndPrompt(context);
-      }
     });
   }
 
@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${strings.appName} (V2)',
+                  strings.appName,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.primary,

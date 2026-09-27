@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/radio_station.dart';
 import '../services/radio_api_service.dart';
 
@@ -82,11 +84,11 @@ class RadioProvider extends ChangeNotifier {
   int _offset = 0;
   static const int _pageSize = 100;
 
-  /// Initialize — load top stations and filter options.
+  /// Initialize â€” load top stations and filter options.
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     
-    // Always start fresh on Popular tab — don't load old filters
+    // Always start fresh on Popular tab â€” don't load old filters
     // Users can re-apply filters via the filter sheet
     _selectedCountry = null;
     _selectedCountryCode = null;
@@ -98,6 +100,7 @@ class RadioProvider extends ChangeNotifier {
     _sort = StationSort.popularity;
     _category = StationCategory.top;
 
+    FirebaseAuth.instance.authStateChanges().listen((user) { if(user!=null) syncFavoritesFromCloud(); });
     await _loadFavorites();
     _loadStationSettings(prefs);
     await Future.wait([
@@ -271,7 +274,7 @@ class RadioProvider extends ChangeNotifier {
       _hasMore = result.length >= _pageSize;
       _offset += result.length;
     } catch (e) {
-      // Silently fail on load more — keep existing data.
+      // Silently fail on load more â€” keep existing data.
     } finally {
       _isLoadingMore = false;
       notifyListeners();
@@ -336,6 +339,7 @@ class RadioProvider extends ChangeNotifier {
     }
     notifyListeners();
     await _saveFavorites();
+    _syncFavoritesToCloud();
   }
 
   Future<void> _loadFavorites() async {
@@ -395,5 +399,32 @@ class RadioProvider extends ChangeNotifier {
     }
     notifyListeners();
     await _saveStationSettings();
+  }
+  Future<void> syncFavoritesFromCloud() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final cloudFavs = List<String>.from(doc.data()?['favorites'] ?? []);
+        _favoriteIds.addAll(cloudFavs);
+        await _saveFavorites();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Cloud sync read error: $e");
+    }
+  }
+
+  Future<void> _syncFavoritesToCloud() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'favorites': _favoriteIds.toList(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("Cloud sync write error: $e");
+    }
   }
 }

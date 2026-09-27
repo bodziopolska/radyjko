@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../l10n/app_strings.dart';
+import '../providers/auth_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -11,6 +12,7 @@ class SettingsScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final settings = context.watch<SettingsProvider>();
     final strings = AppStrings.forLocale(settings.locale);
+    final auth = context.watch<AuthProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -29,8 +31,8 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'pl', label: Text('Polski 🇵🇱')),
-                ButtonSegment(value: 'en', label: Text('English 🇬🇧')),
+                ButtonSegment(value: 'pl', label: Text('Polski đź‡µđź‡±')),
+                ButtonSegment(value: 'en', label: Text('English đź‡¬đź‡§')),
               ],
               selected: {settings.locale.languageCode},
               onSelectionChanged: (Set<String> newSelection) {
@@ -60,7 +62,7 @@ class SettingsScreen extends StatelessWidget {
                 const DropdownMenuItem(value: 'Germany', child: Text('Niemcy')),
                 const DropdownMenuItem(value: 'France', child: Text('Francja')),
                 const DropdownMenuItem(value: 'Spain', child: Text('Hiszpania')),
-                const DropdownMenuItem(value: 'Italy', child: Text('Włochy')),
+                const DropdownMenuItem(value: 'Italy', child: Text('WĹ‚ochy')),
               ],
               onChanged: (val) {
                 if (val != null) settings.setDefaultCountry(val);
@@ -126,3 +128,4 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
+

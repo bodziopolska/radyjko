@@ -4,15 +4,22 @@ import 'package:audio_service/audio_service.dart';
 import 'providers/radio_provider.dart';
 import 'providers/player_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/auth_provider.dart';
 import 'services/audio_handler.dart';
 import 'package:audio_session/audio_session.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 late RadioAudioHandler _audioHandler;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Configure audio session for background playback
   final session = await AudioSession.instance;
@@ -46,6 +53,7 @@ class RadyjkoOnApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: settingsProvider),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => RadioProvider()),
         ChangeNotifierProvider(create: (_) => PlayerProvider(_audioHandler)),
       ],

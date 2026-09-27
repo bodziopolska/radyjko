@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "761359368259",
+    "project_id": "radyjko-cloud",
+    "storage_bucket": "radyjko-cloud.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:761359368259:android:9af07ec72a4fdbc55d14f6",
+        "android_client_info": {
+          "package_name": "com.radyjkoon.radyjko_on"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "761359368259-4obmmnbapbs3ii3hfqjet7vfpm0gfiha.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.radyjkoon.radyjko_on",
+            "certificate_hash": "28036fcd7b1fe2499745b1c0f7d089a9c68358d2"
+          }
+        },
+        {
+          "client_id": "761359368259-orjo709blj79rksamn7un2re32soc8hn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.radyjkoon.radyjko_on",
+            "certificate_hash": "b79e04735c409be22e0eca23a63cb7c5fae1ab97"
+          }
+        },
+        {
+          "client_id": "761359368259-j4qq9c7n4f5l6hg3scngol6uk1cr2qni.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcQBZMejhC_rwuR3EeY3_6TkL69w7042E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "761359368259-j4qq9c7n4f5l6hg3scngol6uk1cr2qni.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
