@@ -389,7 +389,13 @@ class RadioProvider extends ChangeNotifier {
     await _saveStationSettings();
   }
 
-  String? getCustomLogo(String stationUuid) => _customLogos[stationUuid];
+  String? getCustomLogo(String stationUuid) {
+    var logo = _customLogos[stationUuid];
+    if (logo != null && logo.contains('logo.clearbit.com')) {
+      return logo.replaceAll('logo.clearbit.com', 'icon.horse/icon');
+    }
+    return logo;
+  }
 
   Future<void> setCustomLogo(String stationUuid, String? url) async {
     if (url == null || url.isEmpty) {
@@ -435,3 +441,4 @@ class RadioProvider extends ChangeNotifier {
     }
   }
 }
+

@@ -45,8 +45,8 @@ class _LogoEditorDialogState extends State<LogoEditorDialog> {
       try {
         final uri = Uri.parse(widget.station.homepage);
         if (uri.host.isNotEmpty) {
-          final clearbitUrl = 'https://logo.clearbit.com/${uri.host}';
-          _controller.text = clearbitUrl;
+          final autoUrl = 'https://icon.horse/icon/${uri.host}';
+          _controller.text = autoUrl;
           _updatePreview();
           return;
         }
@@ -157,4 +157,5 @@ class _LogoEditorDialogState extends State<LogoEditorDialog> {
     );
   }
 }
+
 
