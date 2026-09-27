@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Radio icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,6H8.3L20.6,3.4L20.1,1.5L2,5.6V20C2,21.1 2.9,22 4,22H20C21.1,22 22,21.1 22,20V8C22,6.9 21.1,6 20,6ZM20,20H4V8H20V20ZM12,10C9.8,10 8,11.8 8,14C8,16.2 9.8,18 12,18C14.2,18 16,16.2 16,14C16,11.8 14.2,10 12,10ZM12,16C10.9,16 10,15.1 10,14C10,12.9 10.9,12 12,12C13.1,12 14,12.9 14,14C14,15.1 13.1,16 12,16Z"/>
+</vector>
