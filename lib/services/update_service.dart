@@ -5,10 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_strings.dart';
 
-class UpdateService {
-  // Bezpośredni link do pliku version.json na Dysku Google
+  // Bezpośredni link do pliku version.json na GitHub
   static const String _versionUrl =
-      'https://drive.google.com/uc?export=download&id=1cnyKT1vYNOp6f_RsaQ7yPA_de9cm9iNi';
+      'https://raw.githubusercontent.com/bodziopolska/radyjko/main/version.json';
 
   // Aktualna wersja aplikacji — zmień przy każdym buildzie
   static const String currentVersion = '1.0.1';

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "build": 1,
-  "apk_url": "",
-  "changelog": ""
+  "version": "1.0.1",
+  "build": 2,
+  "apk_url": "https://github.com/bodziopolska/radyjko/releases/latest/download/radyjko-app.apk",
+  "changelog": "- Nowe wyszukiwanie Live Search\n- Przyklejone przyciski filtrów\n- Podłączono automatyczne aktualizacje z GitHuba!"
 }
