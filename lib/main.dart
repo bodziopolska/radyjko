@@ -1,4 +1,5 @@
-﻿import 'dart:io';
+﻿import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_service/audio_service.dart';
@@ -30,6 +31,8 @@ class MyHttpOverrides extends HttpOverrides {
 Future<void> main() async {
   HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Permission.notification.request();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
@@ -86,6 +89,8 @@ class RadyjkoOnApp extends StatelessWidget {
     );
   }
 }
+
+
 
 
 

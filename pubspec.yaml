@@ -1,4 +1,4 @@
-﻿name: radyjko_on
+name: radyjko_on
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -47,6 +47,7 @@ dependencies:
   firebase_auth: ^6.7.0
   cloud_firestore: ^6.10.0
   google_sign_in: 6.2.1
+  permission_handler: ^13.0.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
