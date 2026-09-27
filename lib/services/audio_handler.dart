@@ -63,12 +63,6 @@ class RadioAudioHandler extends BaseAudioHandler {
   @override
   Future<void> stop() async {
     await _player.stop();
-    // Signal that we are idle so the notification can be dismissed.
-    playbackState.add(playbackState.value.copyWith(
-      processingState: AudioProcessingState.idle,
-      playing: false,
-    ));
-    mediaItem.add(null);
     await super.stop();
   }
 
@@ -105,10 +99,7 @@ class RadioAudioHandler extends BaseAudioHandler {
       await _player.play();
     } catch (e) {
       // Propagate the error through playback state.
-      playbackState.add(playbackState.value.copyWith(
-        processingState: AudioProcessingState.error,
-        playing: false,
-      ));
+      // błąd jest propagowany przez strumień just_audio
     }
   }
 
@@ -172,6 +163,7 @@ class RadioAudioHandler extends BaseAudioHandler {
     }
   }
 }
+
 
 
 
