@@ -11,7 +11,7 @@ plugins {
 
 android {
     namespace = "com.radyjkoon.radyjko_on"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -62,5 +62,6 @@ kotlin {
 flutter {
     source = "../.."
 }
+
 
 
