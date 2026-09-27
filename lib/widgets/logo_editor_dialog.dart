@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/radio_station.dart';
 import '../l10n/app_strings.dart';
@@ -52,7 +52,7 @@ class _LogoEditorDialogState extends State<LogoEditorDialog> {
         }
       } catch (_) {}
     }
-    // Jeśli się nie uda lub brak strony
+    // JeĹ›li siÄ™ nie uda lub brak strony
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Brak poprawnego adresu strony stacji.')),
     );
@@ -61,8 +61,10 @@ class _LogoEditorDialogState extends State<LogoEditorDialog> {
   Future<void> _searchGoogle() async {
     final query = Uri.encodeComponent('${widget.station.name} radio logo');
     final url = Uri.parse('https://www.google.com/search?tbm=isch&q=$query');
-    if (await canLaunchUrl(url)) {
+    // Ignorujemy canLaunchUrl, bo Android 11+ blokuje zapytania bez <queries> w manifeście
+    try {
       await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) { debugPrint(e.toString());
     }
   }
 
@@ -104,14 +106,14 @@ class _LogoEditorDialogState extends State<LogoEditorDialog> {
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.check),
                   onPressed: _updatePreview,
-                  tooltip: 'Podgląd',
+                  tooltip: 'PodglÄ…d',
                 ),
               ),
               keyboardType: TextInputType.url,
               onChanged: (_) => _updatePreview(),
             ),
             const SizedBox(height: 24),
-            Text('Narzędzia wyszukiwania:', style: Theme.of(context).textTheme.titleSmall),
+            Text('NarzÄ™dzia wyszukiwania:', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -124,7 +126,7 @@ class _LogoEditorDialogState extends State<LogoEditorDialog> {
             if (!hasHomepage)
               const Padding(
                 padding: EdgeInsets.only(top: 4),
-                child: Text('Stacja nie udostępnia adresu WWW', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                child: Text('Stacja nie udostÄ™pnia adresu WWW', style: TextStyle(fontSize: 12, color: Colors.grey)),
               ),
             const SizedBox(height: 8),
             SizedBox(
@@ -155,3 +157,4 @@ class _LogoEditorDialogState extends State<LogoEditorDialog> {
     );
   }
 }
+

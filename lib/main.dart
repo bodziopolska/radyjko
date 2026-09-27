@@ -33,7 +33,7 @@ Future<void> main() async {
       androidNotificationChannelName: 'Odtwarzanie Radia',
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
-      androidNotificationIcon: 'mipmap/ic_launcher',
+      androidNotificationIcon: 'drawable/ic_notification',
     ),
   );
 
