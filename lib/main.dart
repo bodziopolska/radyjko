@@ -41,7 +41,7 @@ Future<void> main() async {
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.radyjkoon.channel.audio',
       androidNotificationChannelName: 'Odtwarzanie Radia',
-      androidNotificationOngoing: true,
+      androidNotificationOngoing: false,
       androidStopForegroundOnPause: false,
       androidNotificationIcon: 'mipmap/ic_launcher',
     ),
