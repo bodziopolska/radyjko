@@ -1,7 +1,8 @@
 ﻿{
   "version": "1.0.3 Beta",
   "build": 4,
-  "apk_url": "https://github.com/bodziopolska/radyjko/releases/latest/download/radyjko-app.apk",
+  "apk_url": "https://github.com/bodziopolska/radyjko/releases/download/v1.0.3-beta/radyjko-app.apk",
   "changelog": "- Ostateczna poprawka powiadomieĹ„ w tle na Android 13/14\n- Naprawa zacinajÄ…cego siÄ™ radia i wyciszania przy innych powiadomieniach\n- Kod bĹ‚Ä™du przy przerwaniu odtwarzania\n- Poprawki wydajnoĹ›ciowe"
 }
+
 
