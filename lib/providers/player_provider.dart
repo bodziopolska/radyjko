@@ -50,9 +50,15 @@ class PlayerProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    _handler.player.playbackEventStream.listen((event) {}, onError: (e) {
+    _handler.player.playbackEventStream.listen((event) {}, onError: (e, stackTrace) {
       _hasError = true;
-      _errorMessage = 'Nie udało się odtworzyć stacji';
+      String errorDetails = 'Kod błędu: nieznany';
+      if (e is PlayerException) {
+        errorDetails = 'Błąd [PE-${e.code}]: ${e.message}';
+      } else {
+        errorDetails = 'Błąd [SYS]: ${e.toString()}';
+      }
+      _errorMessage = 'Nie udało się odtworzyć stacji.\n$errorDetails';
       _isPlaying = false;
       _updateTile();
       notifyListeners();
