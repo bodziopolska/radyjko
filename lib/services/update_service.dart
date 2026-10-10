@@ -13,8 +13,8 @@ class UpdateService {
       'https://raw.githubusercontent.com/bodziopolska/radyjko/main/version.json';
 
   // Aktualna wersja aplikacji â€” zmieĹ„ przy kaĹĽdym buildzie
-  static const String currentVersion = '1.0.2';
-  static const int currentBuild = 3;
+  static const String currentVersion = '1.0.3';
+  static const int currentBuild = 4;
 
   /// Sprawdza, czy jest dostÄ™pna nowa wersja.
   /// Zwraca dane aktualizacji lub null jeĹ›li brak.
@@ -148,3 +148,4 @@ class UpdateService {
     );
   }
 }
+
