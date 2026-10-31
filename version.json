@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "build": 1,
-  "apk_url": "",
-  "changelog": ""
+  "version": "1.0.4 Beta",
+  "build": 5,
+  "apk_url": "https://github.com/bodziopolska/radyjko/releases/download/v1.0.4-beta/radyjko-app.apk",
+  "changelog": "- Nowość: Rozpoznawanie utworów ze strumienia przez Shazam!\n- Przycisk 'Rozpoznaj utwór (Shazam)' gdy stacja nie nadaje tytułu\n- Konfiguracja klucza RapidAPI Shazam w Ustawieniach\n- Automatyczna okładka albumu i szybki przycisk Spotify"
 }
