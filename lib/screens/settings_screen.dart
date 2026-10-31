@@ -1,10 +1,12 @@
-﻿import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/settings_provider.dart';
 import '../l10n/app_strings.dart';
 import '../providers/auth_provider.dart';
+import '../services/update_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -59,7 +61,7 @@ class SettingsScreen extends StatelessWidget {
                 const DropdownMenuItem(value: 'Germany', child: Text('Niemcy')),
                 const DropdownMenuItem(value: 'France', child: Text('Francja')),
                 const DropdownMenuItem(value: 'Spain', child: Text('Hiszpania')),
-                const DropdownMenuItem(value: 'Italy', child: Text('WĹ‚ochy')),
+                const DropdownMenuItem(value: 'Italy', child: Text('Włochy')),
               ],
               onChanged: (val) {
                 if (val != null) settings.setDefaultCountry(val);
@@ -103,7 +105,7 @@ class SettingsScreen extends StatelessWidget {
             subtitle: Text(
               settings.rapidApiKey != null
                   ? 'Klucz skonfigurowany (${settings.rapidApiKey!.substring(0, (settings.rapidApiKey!.length > 6 ? 6 : settings.rapidApiKey!.length))}...)'
-                  : 'DomyĹ›lny (kliknij, aby podaÄ‡ swĂłj darmowy klucz RapidAPI Shazam)',
+                  : 'Kliknij, aby podać swój darmowy klucz RapidAPI Shazam',
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showRapidApiKeyDialog(context, settings),
@@ -126,7 +128,7 @@ class SettingsScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.cloud_sync, color: Colors.blue),
               title: Text('Zapisuj ulubione w chmurze', style: theme.textTheme.titleMedium),
-              subtitle: Text('Zaloguj siÄ™, aby odzyskaÄ‡ stacje na nowym telefonie', style: theme.textTheme.bodySmall),
+              subtitle: Text('Zaloguj się, aby odzyskać stacje na nowym telefonie', style: theme.textTheme.bodySmall),
               trailing: auth.isLoading
                   ? const CircularProgressIndicator()
                   : FilledButton.icon(
@@ -137,7 +139,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           const Divider(),
 
-          // About section
+          // About & Updates section
           _buildSectionHeader(theme, strings.about),
           ListTile(
             leading: const Icon(Icons.info_outline),
@@ -146,11 +148,30 @@ class SettingsScreen extends StatelessWidget {
               future: PackageInfo.fromPlatform(),
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
-                  return Text('Wersja ' + snapshot.data!.version + ' (Build ' + snapshot.data!.buildNumber + ')');
+                  return Text('Wersja ${snapshot.data!.version} (Build ${snapshot.data!.buildNumber})');
                 }
                 return const Text('Wersja 1.0.4 Beta (Build 5)');
               },
             ),
+          ),
+          ListTile(
+            leading: const FaIcon(FontAwesomeIcons.github, size: 24),
+            title: const Text('GitHub (Wydania i aktualizacje)'),
+            subtitle: const Text('Otwórz stronę projektu na GitHubie'),
+            trailing: const Icon(Icons.open_in_new, size: 20),
+            onTap: () async {
+              final url = Uri.parse('https://github.com/bodziopolska/radyjko/releases');
+              try {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              } catch (_) {}
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.system_update_rounded),
+            title: const Text('Sprawdź aktualizacje'),
+            subtitle: const Text('Wyszukaj nowszą wersję aplikacji w chmurze'),
+            trailing: const Icon(Icons.refresh),
+            onTap: () => UpdateService.checkAndPrompt(context, showFeedbackIfLatest: true),
           ),
           ListTile(
             leading: const Icon(Icons.cloud_queue),
@@ -173,7 +194,7 @@ class SettingsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Podaj swĂłj darmowy klucz z RapidAPI (Shazam Core), aby rozpoznawaÄ‡ utwory bezpoĹ›rednio w bazie Shazama.\n\nDarmowy pakiet na rapidapi.com odnawia pulÄ™ darmowych zapytaĹ„ co miesiÄ…c.',
+              'Podaj swój darmowy klucz z RapidAPI (Shazam API free), aby rozpoznawać utwory bezpośrednio w bazie Shazama.\n\nDarmowy pakiet na rapidapi.com odnawia pulę darmowych zapytań co miesiąc.',
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -188,13 +209,13 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 8),
             TextButton.icon(
               onPressed: () async {
-                final url = Uri.parse('https://rapidapi.com/tipsters/api/shazam-core');
+                final url = Uri.parse('https://rapidapi.com/diyorbekkanal/api/shazam-api-free');
                 try {
                   await launchUrl(url, mode: LaunchMode.externalApplication);
                 } catch (_) {}
               },
               icon: const Icon(Icons.open_in_new, size: 16),
-              label: const Text('OtwĂłrz stronÄ™ RapidAPI Shazam'),
+              label: const Text('Otwórz stronę RapidAPI Shazam'),
             ),
           ],
         ),
@@ -205,7 +226,7 @@ class SettingsScreen extends StatelessWidget {
                 settings.setRapidApiKey(null);
                 Navigator.pop(ctx);
               },
-              child: const Text('WyczyĹ›Ä‡'),
+              child: const Text('Wyczyść'),
             ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -237,5 +258,3 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
-
-

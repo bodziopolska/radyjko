@@ -1,24 +1,24 @@
-﻿import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/settings_provider.dart';
 import '../l10n/app_strings.dart';
 
 class UpdateService {
-  // BezpoĹ›redni link do pliku version.json na GitHub
+  // Bezpośredni link do pliku version.json na GitHub
   static const String _versionUrl =
       'https://raw.githubusercontent.com/bodziopolska/radyjko/main/version.json';
 
-  // Aktualna wersja aplikacji â€” zmieĹ„ przy kaĹĽdym buildzie
+  // Aktualna wersja aplikacji — zmień przy każdym buildzie
   static const String currentVersion = '1.0.4 Beta';
   static const int currentBuild = 5;
 
-  /// Sprawdza, czy jest dostÄ™pna nowa wersja.
-  /// Zwraca dane aktualizacji lub null jeĹ›li brak.
+  /// Sprawdza, czy jest dostępna nowa wersja.
+  /// Zwraca dane aktualizacji lub null jeśli brak.
   static Future<Map<String, dynamic>?> checkForUpdate() async {
     try {
       print('DEBUG [UpdateService]: Rozpoczynam sprawdzanie aktualizacji z $_versionUrl');
@@ -30,47 +30,51 @@ class UpdateService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final latestBuild = data['build'] as int? ?? 0;
-        print('DEBUG [UpdateService]: Wersja z neta: $latestBuild, Moja wersja: $currentBuild');
 
-        int myBuild = currentBuild; try { final info = await PackageInfo.fromPlatform(); myBuild = int.tryParse(info.buildNumber) ?? currentBuild; } catch (_) {}
+        int myBuild = currentBuild;
+        try {
+          final info = await PackageInfo.fromPlatform();
+          myBuild = int.tryParse(info.buildNumber) ?? currentBuild;
+        } catch (_) {}
+
+        print('DEBUG [UpdateService]: Wersja z neta: $latestBuild, Moja wersja: $myBuild');
+
         if (latestBuild > myBuild) {
-          print('DEBUG [UpdateService]: Znaleziono nowszÄ… wersjÄ™!');
+          print('DEBUG [UpdateService]: Znaleziono nowszą wersję!');
           return data;
         } else {
           print('DEBUG [UpdateService]: Brak nowszej wersji.');
         }
       }
     } catch (e, stack) {
-      print('DEBUG [UpdateService]: BĹÄ„D przy pobieraniu aktualizacji: $e');
+      print('DEBUG [UpdateService]: BŁĄD przy pobieraniu aktualizacji: $e');
       print(stack);
     }
     return null;
   }
 
-  /// Sprawdza aktualizacjÄ™ i pokazuje dialog jeĹ›li jest nowa wersja.
-  /// Pomija sprawdzenie jeĹ›li uĹĽytkownik kliknÄ…Ĺ‚ "PomiĹ„" w ciÄ…gu ostatnich 24h.
-  static Future<void> checkAndPrompt(BuildContext context) async {
-    print('DEBUG [UpdateService]: WywoĹ‚ano checkAndPrompt()');
+  /// Sprawdza aktualizację i pokazuje dialog jeśli jest nowa wersja.
+  static Future<void> checkAndPrompt(BuildContext context, {bool showFeedbackIfLatest = false}) async {
+    print('DEBUG [UpdateService]: Wywołano checkAndPrompt()');
     final prefs = await SharedPreferences.getInstance();
-    final lastSkipped = prefs.getInt('update_skipped_at') ?? 0;
-    final now = DateTime.now().millisecondsSinceEpoch;
-
-    // Nie pytaj ponownie przez 24h po klikniÄ™ciu "PĂłĹşniej" (zakomentowane na czas testĂłw)
-    // if (now - lastSkipped < 24 * 60 * 60 * 1000) return;
 
     final update = await checkForUpdate();
+    if (!context.mounted) return;
+
     if (update == null) {
-      print('DEBUG [UpdateService]: checkForUpdate zwrĂłciĹ‚o null, przerywam.');
-      return;
-    }
-    if (!context.mounted) {
-      print('DEBUG [UpdateService]: context.mounted == false, przerywam.');
+      if (showFeedbackIfLatest) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Aplikacja jest aktualna! Masz najnowszą wersję.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
       return;
     }
 
-    print('DEBUG [UpdateService]: PokazujÄ™ dialog aktualizacji!');
+    print('DEBUG [UpdateService]: Pokazuję dialog aktualizacji!');
 
-    // UĹĽywamy read() zamiast watch(), bo jesteĹ›my poza metodÄ… build()
     final locale = context.read<SettingsProvider>().locale;
     final strings = AppStrings.forLocale(locale);
     final theme = Theme.of(context);
@@ -88,7 +92,7 @@ class UpdateService {
         ),
         title: Text(
           strings.locale.languageCode == 'pl'
-              ? 'DostÄ™pna aktualizacja!'
+              ? 'Dostępna aktualizacja!'
               : 'Update available!',
         ),
         content: Column(
@@ -105,8 +109,8 @@ class UpdateService {
               const SizedBox(height: 12),
               Text(
                 strings.locale.languageCode == 'pl'
-                    ? 'Co nowego:'
-                    : 'What\'s new:',
+                  ? 'Co nowego:'
+                  : 'What\'s new:',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -129,7 +133,7 @@ class UpdateService {
               if (ctx.mounted) Navigator.pop(ctx);
             },
             child: Text(
-              strings.locale.languageCode == 'pl' ? 'PĂłĹşniej' : 'Later',
+              strings.locale.languageCode == 'pl' ? 'Później' : 'Later',
             ),
           ),
           FilledButton.icon(
@@ -150,7 +154,3 @@ class UpdateService {
     );
   }
 }
-
-
-
-
