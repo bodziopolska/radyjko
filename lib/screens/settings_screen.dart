@@ -1,3 +1,4 @@
+﻿import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -58,7 +59,7 @@ class SettingsScreen extends StatelessWidget {
                 const DropdownMenuItem(value: 'Germany', child: Text('Niemcy')),
                 const DropdownMenuItem(value: 'France', child: Text('Francja')),
                 const DropdownMenuItem(value: 'Spain', child: Text('Hiszpania')),
-                const DropdownMenuItem(value: 'Italy', child: Text('Włochy')),
+                const DropdownMenuItem(value: 'Italy', child: Text('WĹ‚ochy')),
               ],
               onChanged: (val) {
                 if (val != null) settings.setDefaultCountry(val);
@@ -102,7 +103,7 @@ class SettingsScreen extends StatelessWidget {
             subtitle: Text(
               settings.rapidApiKey != null
                   ? 'Klucz skonfigurowany (${settings.rapidApiKey!.substring(0, (settings.rapidApiKey!.length > 6 ? 6 : settings.rapidApiKey!.length))}...)'
-                  : 'Domyślny (kliknij, aby podać swój darmowy klucz RapidAPI Shazam)',
+                  : 'DomyĹ›lny (kliknij, aby podaÄ‡ swĂłj darmowy klucz RapidAPI Shazam)',
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showRapidApiKeyDialog(context, settings),
@@ -125,7 +126,7 @@ class SettingsScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.cloud_sync, color: Colors.blue),
               title: Text('Zapisuj ulubione w chmurze', style: theme.textTheme.titleMedium),
-              subtitle: Text('Zaloguj się, aby odzyskać stacje na nowym telefonie', style: theme.textTheme.bodySmall),
+              subtitle: Text('Zaloguj siÄ™, aby odzyskaÄ‡ stacje na nowym telefonie', style: theme.textTheme.bodySmall),
               trailing: auth.isLoading
                   ? const CircularProgressIndicator()
                   : FilledButton.icon(
@@ -141,7 +142,15 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: Text(strings.appName),
-            subtitle: const Text('Wersja 1.0.4 Beta (Build 5)'),
+            subtitle: FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return Text('Wersja ' + snapshot.data!.version + ' (Build ' + snapshot.data!.buildNumber + ')');
+                }
+                return const Text('Wersja 1.0.4 Beta (Build 5)');
+              },
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.cloud_queue),
@@ -164,7 +173,7 @@ class SettingsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Podaj swój darmowy klucz z RapidAPI (Shazam Core), aby rozpoznawać utwory bezpośrednio w bazie Shazama.\n\nDarmowy pakiet na rapidapi.com odnawia pulę darmowych zapytań co miesiąc.',
+              'Podaj swĂłj darmowy klucz z RapidAPI (Shazam Core), aby rozpoznawaÄ‡ utwory bezpoĹ›rednio w bazie Shazama.\n\nDarmowy pakiet na rapidapi.com odnawia pulÄ™ darmowych zapytaĹ„ co miesiÄ…c.',
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -185,7 +194,7 @@ class SettingsScreen extends StatelessWidget {
                 } catch (_) {}
               },
               icon: const Icon(Icons.open_in_new, size: 16),
-              label: const Text('Otwórz stronę RapidAPI Shazam'),
+              label: const Text('OtwĂłrz stronÄ™ RapidAPI Shazam'),
             ),
           ],
         ),
@@ -196,7 +205,7 @@ class SettingsScreen extends StatelessWidget {
                 settings.setRapidApiKey(null);
                 Navigator.pop(ctx);
               },
-              child: const Text('Wyczyść'),
+              child: const Text('WyczyĹ›Ä‡'),
             ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -228,3 +237,5 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
+
+

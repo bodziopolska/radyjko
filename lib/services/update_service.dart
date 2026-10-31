@@ -1,4 +1,5 @@
-﻿import 'dart:convert';
+﻿import 'package:package_info_plus/package_info_plus.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -31,7 +32,8 @@ class UpdateService {
         final latestBuild = data['build'] as int? ?? 0;
         print('DEBUG [UpdateService]: Wersja z neta: $latestBuild, Moja wersja: $currentBuild');
 
-        if (latestBuild > currentBuild) {
+        int myBuild = currentBuild; try { final info = await PackageInfo.fromPlatform(); myBuild = int.tryParse(info.buildNumber) ?? currentBuild; } catch (_) {}
+        if (latestBuild > myBuild) {
           print('DEBUG [UpdateService]: Znaleziono nowszÄ… wersjÄ™!');
           return data;
         } else {
@@ -148,6 +150,7 @@ class UpdateService {
     );
   }
 }
+
 
 
 
