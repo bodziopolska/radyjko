@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/settings_provider.dart';
 import '../l10n/app_strings.dart';
 import '../providers/auth_provider.dart';
@@ -16,12 +17,7 @@ class SettingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          strings.settings,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: Text(strings.settings),
       ),
       body: ListView(
         children: [
@@ -31,11 +27,11 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'pl', label: Text('Polski 🇵🇱')),
-                ButtonSegment(value: 'en', label: Text('English 🇬🇧')),
+                ButtonSegment(value: 'pl', label: Text('Polski')),
+                ButtonSegment(value: 'en', label: Text('English')),
               ],
               selected: {settings.locale.languageCode},
-              onSelectionChanged: (Set<String> newSelection) {
+              onSelectionChanged: (newSelection) {
                 settings.setLocale(Locale(newSelection.first));
               },
             ),
@@ -62,7 +58,7 @@ class SettingsScreen extends StatelessWidget {
                 const DropdownMenuItem(value: 'Germany', child: Text('Niemcy')),
                 const DropdownMenuItem(value: 'France', child: Text('Francja')),
                 const DropdownMenuItem(value: 'Spain', child: Text('Hiszpania')),
-                const DropdownMenuItem(value: 'Italy', child: Text('WĹ‚ochy')),
+                const DropdownMenuItem(value: 'Italy', child: Text('Włochy')),
               ],
               onChanged: (val) {
                 if (val != null) settings.setDefaultCountry(val);
@@ -98,8 +94,22 @@ class SettingsScreen extends StatelessWidget {
           ),
           const Divider(),
 
-          // About section
+          // Song Recognition Section (Shazam / RapidAPI)
+          _buildSectionHeader(theme, 'Rozpoznawanie muzyki'),
+          ListTile(
+            leading: const Icon(Icons.graphic_eq),
+            title: const Text('Klucz RapidAPI (Shazam)'),
+            subtitle: Text(
+              settings.rapidApiKey != null
+                  ? 'Klucz skonfigurowany (${settings.rapidApiKey!.substring(0, (settings.rapidApiKey!.length > 6 ? 6 : settings.rapidApiKey!.length))}...)'
+                  : 'Domyślny (kliknij, aby podać swój darmowy klucz RapidAPI Shazam)',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showRapidApiKeyDialog(context, settings),
+          ),
           const Divider(),
+
+          // Cloud Account Section
           _buildSectionHeader(theme, 'Konto w chmurze'),
           if (auth.isAuthenticated)
             ListTile(
@@ -125,16 +135,80 @@ class SettingsScreen extends StatelessWidget {
                     ),
             ),
           const Divider(),
+
+          // About section
           _buildSectionHeader(theme, strings.about),
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: Text(strings.appName),
-            subtitle: const Text('Wersja 1.0.3 Beta (Build 4)'), // TODO: W przyszłości użyj package_info_plus
+            subtitle: const Text('Wersja 1.0.4 Beta (Build 5)'),
           ),
           ListTile(
             leading: const Icon(Icons.cloud_queue),
             title: Text(strings.apiSource),
             subtitle: const Text('radio-browser.info'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRapidApiKeyDialog(BuildContext context, SettingsProvider settings) {
+    final controller = TextEditingController(text: settings.rapidApiKey ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Klucz RapidAPI (Shazam)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Podaj swój darmowy klucz z RapidAPI (Shazam Core), aby rozpoznawać utwory bezpośrednio w bazie Shazama.\n\nDarmowy pakiet na rapidapi.com odnawia pulę darmowych zapytań co miesiąc.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Klucz X-RapidAPI-Key',
+                border: OutlineInputBorder(),
+                hintText: 'np. 9f4a8b...',
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () async {
+                final url = Uri.parse('https://rapidapi.com/tipsters/api/shazam-core');
+                try {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                } catch (_) {}
+              },
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: const Text('Otwórz stronę RapidAPI Shazam'),
+            ),
+          ],
+        ),
+        actions: [
+          if (settings.rapidApiKey != null)
+            TextButton(
+              onPressed: () {
+                settings.setRapidApiKey(null);
+                Navigator.pop(ctx);
+              },
+              child: const Text('Wyczyść'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              settings.setRapidApiKey(text.isNotEmpty ? text : null);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Zapisz'),
           ),
         ],
       ),
@@ -154,5 +228,3 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
-
-

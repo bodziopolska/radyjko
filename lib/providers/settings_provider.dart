@@ -11,6 +11,9 @@ class SettingsProvider extends ChangeNotifier {
   String _defaultCountry = '';
   String get defaultCountry => _defaultCountry;
 
+  String? _rapidApiKey;
+  String? get rapidApiKey => _rapidApiKey;
+
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final langCode = prefs.getString('locale') ?? 'pl';
@@ -20,8 +23,20 @@ class SettingsProvider extends ChangeNotifier {
     _themeMode = _themeModeFromString(themeStr);
 
     _defaultCountry = prefs.getString('defaultCountry') ?? '';
+    _rapidApiKey = prefs.getString('rapidApiKey');
 
     notifyListeners();
+  }
+
+  Future<void> setRapidApiKey(String? key) async {
+    _rapidApiKey = (key != null && key.trim().isNotEmpty) ? key.trim() : null;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    if (_rapidApiKey == null) {
+      await prefs.remove('rapidApiKey');
+    } else {
+      await prefs.setString('rapidApiKey', _rapidApiKey!);
+    }
   }
 
   Future<void> setDefaultCountry(String country) async {

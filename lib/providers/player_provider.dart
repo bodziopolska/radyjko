@@ -6,6 +6,7 @@ import '../models/radio_station.dart';
 import '../services/audio_handler.dart';
 import '../services/itunes_service.dart';
 import '../services/radio_api_service.dart';
+import '../services/song_recognition_service.dart';
 
 class PlayerProvider extends ChangeNotifier {
   final RadioAudioHandler _handler;
@@ -31,6 +32,9 @@ class PlayerProvider extends ChangeNotifier {
   String? _currentArtwork;
   String? get currentArtwork => _currentArtwork;
   String? get currentSong => _currentSong;
+
+  bool _isRecognizing = false;
+  bool get isRecognizing => _isRecognizing;
 
   bool Function(String)? _isItunesDisabledCheck;
   void setItunesDisabledChecker(bool Function(String) checker) {
@@ -156,6 +160,58 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> recognizeCurrentSong({String? rapidApiKey}) async {
+    final station = _currentStation;
+    if (station == null || !_isPlaying) return false;
+
+    final streamUrl = station.streamUrl;
+    if (streamUrl.isEmpty) return false;
+
+    _isRecognizing = true;
+    notifyListeners();
+
+    try {
+      final recognized = await SongRecognitionService.recognizeFromStream(
+        streamUrl,
+        rapidApiKey: rapidApiKey,
+      );
+
+      if (recognized != null) {
+        final newSong = recognized.fullTitle;
+        _currentSong = newSong;
+        _currentArtwork = recognized.artworkUrl;
+
+        final stationId = station.stationUuid;
+        final customLogo = _customLogoGetter?.call(stationId);
+
+        if (_currentArtwork != null) {
+          _handler.updateArtwork(_currentArtwork!);
+        } else {
+          _handler.updateArtwork(customLogo ?? station.bestFavicon);
+        }
+        notifyListeners();
+
+        if (_currentArtwork == null && !(_isItunesDisabledCheck?.call(stationId) ?? false)) {
+          try {
+            final artwork = await ItunesService.getArtwork(newSong);
+            if (artwork != null && _currentSong == newSong) {
+              _currentArtwork = artwork;
+              _handler.updateArtwork(artwork);
+              notifyListeners();
+            }
+          } catch (_) {}
+        }
+        return true;
+      }
+    } catch (e) {
+      print('DEBUG [PlayerProvider]: Błąd rozpoznawania: $e');
+    } finally {
+      _isRecognizing = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
   Future<void> pause() async {
     await _handler.pause();
     _isPlaying = false;
@@ -211,7 +267,7 @@ class PlayerProvider extends ChangeNotifier {
         'stationName': _currentStation?.name ?? '',
       });
     } catch (_) {
-      // Tile may not be available â€” ignore.
+      // Tile may not be available — ignore.
     }
   }
 
@@ -221,14 +277,3 @@ class PlayerProvider extends ChangeNotifier {
     super.dispose();
   }
 }
-
-
-
-
-
-
-
-
-
-
-

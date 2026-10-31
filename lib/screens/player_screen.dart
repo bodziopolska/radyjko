@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:marquee/marquee.dart';
 import '../providers/player_provider.dart';
 import '../providers/radio_provider.dart';
+import '../providers/settings_provider.dart';
 import '../l10n/app_strings.dart';
 import '../widgets/logo_editor_dialog.dart';
 
@@ -104,7 +105,7 @@ class PlayerScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -211,7 +212,63 @@ class PlayerScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
               ] else ...[
-                const SizedBox(height: 48),
+                const SizedBox(height: 10),
+                if (isPlaying && !isBuffering && !playerProvider.hasError) ...[
+                  if (playerProvider.isRecognizing)
+                    Container(
+                      height: 38,
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Rozpoznawanie utworu...',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final rapidKey = context.read<SettingsProvider>().rapidApiKey;
+                        final success = await playerProvider.recognizeCurrentSong(rapidApiKey: rapidKey);
+                        if (!context.mounted) return;
+                        if (!success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Nie udało się rozpoznać utworu (może trwają reklamy lub audycja?)'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.graphic_eq_rounded, size: 18),
+                      label: const Text('Rozpoznaj utwór (Shazam)'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.primary,
+                        side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ),
+                ] else ...[
+                  const SizedBox(height: 38),
+                ],
+                const SizedBox(height: 10),
               ],
 
               // Controls
@@ -238,8 +295,8 @@ class PlayerScreen extends StatelessWidget {
                               color: theme.colorScheme.onPrimaryContainer,
                             ),
                             onPressed: () {
-                                if (isPlaying) {
-                                  playerProvider.pause();
+                              if (isPlaying) {
+                                playerProvider.pause();
                               } else {
                                 playerProvider.playStation(station);
                               }
@@ -344,15 +401,3 @@ class PlayerScreen extends StatelessWidget {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
