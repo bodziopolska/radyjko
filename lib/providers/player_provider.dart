@@ -1,4 +1,3 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -46,6 +45,37 @@ class PlayerProvider extends ChangeNotifier {
     _customLogoGetter = getter;
   }
 
+  bool _isJunkSongTitle(String? title, RadioStation? station) {
+    if (title == null || title.trim().isEmpty) return true;
+    final cleaned = title.trim().toLowerCase();
+    
+    if (station != null) {
+      final stationName = station.name.trim().toLowerCase();
+      if (cleaned == stationName) return true;
+      if ((stationName.contains(cleaned) || cleaned.contains(stationName)) &&
+          !title.contains(' - ') && !title.contains(' – ')) {
+        return true;
+      }
+    }
+
+    const junkTitles = [
+      'radio',
+      'unknown',
+      'stream',
+      'online',
+      'live',
+      'muzyka',
+      'najlepsza muzyka',
+      'hity na czasie',
+      'reklama',
+      'audycja',
+      'wiadomości',
+    ];
+    if (junkTitles.contains(cleaned)) return true;
+
+    return false;
+  }
+
   PlayerProvider(this._handler) {
     _handler.player.playerStateStream.listen((state) {
       _isPlaying = state.playing;
@@ -69,8 +99,9 @@ class PlayerProvider extends ChangeNotifier {
     });
 
     _handler.mediaItem.listen((item) async {
-      if (item?.displayTitle != null && item!.displayTitle!.isNotEmpty) {
-        final newSong = item.displayTitle;
+      final title = item?.displayTitle;
+      if (title != null && title.isNotEmpty && !_isJunkSongTitle(title, _currentStation)) {
+        final newSong = title;
         if (_currentSong != newSong) {
           _currentSong = newSong;
           _currentArtwork = null;
@@ -79,10 +110,9 @@ class PlayerProvider extends ChangeNotifier {
           _handler.updateArtwork(customLogo ?? _currentStation?.bestFavicon ?? '');
           notifyListeners();
           
-          // Only fetch iTunes artwork if not disabled for this station
           if (!(_isItunesDisabledCheck?.call(stationId) ?? false)) {
             try {
-              final artwork = await ItunesService.getArtwork(newSong!);
+              final artwork = await ItunesService.getArtwork(newSong);
               if (artwork != null && _currentSong == newSong) {
                 _currentArtwork = artwork;
                 _handler.updateArtwork(artwork);
@@ -160,23 +190,28 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> recognizeCurrentSong({String? rapidApiKey}) async {
+  Future<String?> recognizeCurrentSong({String? rapidApiKey}) async {
     final station = _currentStation;
-    if (station == null || !_isPlaying) return false;
+    if (station == null || !_isPlaying) {
+      return 'Włącz odtwarzanie stacji przed rozpoznawaniem.';
+    }
 
     final streamUrl = station.streamUrl;
-    if (streamUrl.isEmpty) return false;
+    if (streamUrl.isEmpty) {
+      return 'Brak adresu strumienia dla tej stacji.';
+    }
 
     _isRecognizing = true;
     notifyListeners();
 
     try {
-      final recognized = await SongRecognitionService.recognizeFromStream(
+      final result = await SongRecognitionService.recognizeFromStream(
         streamUrl,
         rapidApiKey: rapidApiKey,
       );
 
-      if (recognized != null) {
+      if (result.isSuccess && result.song != null) {
+        final recognized = result.song!;
         final newSong = recognized.fullTitle;
         _currentSong = newSong;
         _currentArtwork = recognized.artworkUrl;
@@ -201,15 +236,17 @@ class PlayerProvider extends ChangeNotifier {
             }
           } catch (_) {}
         }
-        return true;
+        return null; // null oznacza sukces
+      } else {
+        return result.errorMessage ?? 'Nie udało się rozpoznać utworu.';
       }
     } catch (e) {
       print('DEBUG [PlayerProvider]: Błąd rozpoznawania: $e');
+      return 'Wystąpił błąd podczas rozpoznawania: $e';
     } finally {
       _isRecognizing = false;
       notifyListeners();
     }
-    return false;
   }
 
   Future<void> pause() async {

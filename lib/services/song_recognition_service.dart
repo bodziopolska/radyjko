@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class RecognizedSong {
@@ -20,52 +21,63 @@ class RecognizedSong {
   String get fullTitle => '$artist - $title';
 }
 
+class RecognitionResult {
+  final RecognizedSong? song;
+  final String? errorMessage;
+
+  bool get isSuccess => song != null;
+
+  RecognitionResult.success(this.song) : errorMessage = null;
+  RecognitionResult.error(this.errorMessage) : song = null;
+}
+
 class SongRecognitionService {
-  /// Pobiera ok. 6-8 sekund próbki ze strumienia stacji (MP3/AAC)
+  /// Pobiera ok. 8-10 sekund czystego strumienia stacji (MP3/AAC)
   static Future<List<int>?> _captureStreamSample(String streamUrl) async {
-    final client = http.Client();
+    final client = HttpClient();
+    client.badCertificateCallback = (cert, host, port) => true;
+    client.connectionTimeout = const Duration(seconds: 8);
+
     try {
-      final request = http.Request('GET', Uri.parse(streamUrl));
-      request.headers['User-Agent'] = 'RadyjkoON/1.0';
+      final req = await client.getUrl(Uri.parse(streamUrl));
+      req.headers.set('User-Agent', 'RadyjkoON/1.0');
+      req.headers.set('Icy-MetaData', '0'); // Wyłącz wstrzykiwanie napisów ICY do danych audio
+      final res = await req.close().timeout(const Duration(seconds: 8));
 
-      final streamedResponse = await client.send(request).timeout(
-        const Duration(seconds: 8),
-      );
-
-      if (streamedResponse.statusCode != 200) {
-        client.close();
+      if (res.statusCode != 200) {
+        client.close(force: true);
         return null;
       }
 
       final buffer = <int>[];
-      // Ok. 120 KB to ok. 7-8 sekund przy 128 kbps (idealne dla Shazama)
-      const targetBytes = 120 * 1024;
+      // Ok. 180 KB to ok. 10-12 sekund przy 128 kbps
+      const targetBytes = 180 * 1024;
       final completer = Completer<List<int>>();
 
       late StreamSubscription sub;
-      sub = streamedResponse.stream.listen(
+      sub = res.listen(
         (chunk) {
           buffer.addAll(chunk);
           if (buffer.length >= targetBytes) {
             sub.cancel();
-            client.close();
+            client.close(force: true);
             if (!completer.isCompleted) completer.complete(buffer);
           }
         },
         onError: (e) {
-          client.close();
+          client.close(force: true);
           if (!completer.isCompleted) completer.completeError(e);
         },
         cancelOnError: true,
       );
 
       final audioBytes = await completer.future.timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 12),
         onTimeout: () {
           sub.cancel();
-          client.close();
-          if (buffer.isNotEmpty) return buffer;
-          throw TimeoutException('Przekroczono czas buforowania strumienia');
+          client.close(force: true);
+          if (buffer.length > 50 * 1024) return buffer;
+          throw TimeoutException('Przekroczono czas buforowania');
         },
       );
 
@@ -74,40 +86,37 @@ class SongRecognitionService {
       }
       return audioBytes;
     } catch (e) {
-      print('DEBUG [SongRecognitionService] Błąd pobierania strumienia: $e');
+      print('DEBUG [SongRecognitionService] Błąd capture: $e');
+      client.close(force: true);
       return null;
-    } finally {
-      client.close();
     }
   }
 
-  /// Rozpoznaje utwór:
-  /// 1. Jeśli podano rapidApiKey -> pyta bazę Shazam (RapidAPI)
-  /// 2. Jeśli brak klucza lub błąd -> próbuje awaryjnie AudD
-  static Future<RecognizedSong?> recognizeFromStream(
+  /// Główna metoda rozpoznawania utworu
+  static Future<RecognitionResult> recognizeFromStream(
     String streamUrl, {
     String? rapidApiKey,
     String? auddToken,
   }) async {
-    final audioBytes = await _captureStreamSample(streamUrl);
-    if (audioBytes == null) return null;
-
-    // 1. Próba przez Shazam na RapidAPI (jeśli użytkownik podał klucz)
-    if (rapidApiKey != null && rapidApiKey.trim().isNotEmpty) {
-      final shazamResult = await _recognizeViaShazam(audioBytes, rapidApiKey.trim());
-      if (shazamResult != null) return shazamResult;
+    if (rapidApiKey == null || rapidApiKey.trim().isEmpty) {
+      return RecognitionResult.error(
+        'Brak klucza API! Wejdź w Ustawienia -> Klucz RapidAPI (Shazam) i wklej swój darmowy klucz.',
+      );
     }
 
-    // 2. Fallback przez AudD (np. darmowy test lub token)
-    return await _recognizeViaAudd(audioBytes, auddToken);
+    final audioBytes = await _captureStreamSample(streamUrl);
+    if (audioBytes == null) {
+      return RecognitionResult.error('Nie udało się pobrać próbki dźwięku ze strumienia stacji.');
+    }
+
+    return await _recognizeViaShazam(audioBytes, rapidApiKey.trim());
   }
 
-  /// Zapytanie do bazy Shazam przez RapidAPI (Shazam API Free oraz Shazam Core)
-  static Future<RecognizedSong?> _recognizeViaShazam(
+  /// Zapytanie do bazy Shazam (shazam-api-free.p.rapidapi.com)
+  static Future<RecognitionResult> _recognizeViaShazam(
     List<int> audioBytes,
     String apiKey,
   ) async {
-    // 1. Próba przez Shazam API Free (shazam-api-free.p.rapidapi.com / upload_file)
     try {
       final uri = Uri.parse('https://shazam-api-free.p.rapidapi.com/shazam/recognize/');
       final req = http.MultipartRequest('POST', uri);
@@ -117,39 +126,35 @@ class SongRecognitionService {
         http.MultipartFile.fromBytes('upload_file', audioBytes, filename: 'sample.mp3'),
       );
 
-      final res = await req.send().timeout(const Duration(seconds: 15));
-      final respBody = await res.stream.bytesToString();
+      final streamedRes = await req.send().timeout(const Duration(seconds: 15));
+      final respBody = await streamedRes.stream.bytesToString();
 
-      if (res.statusCode == 200) {
-        final parsed = _parseShazamResponse(respBody);
-        if (parsed != null) return parsed;
+      print('DEBUG [Shazam API] Status: ${streamedRes.statusCode}');
+      print('DEBUG [Shazam API] Body: $respBody');
+
+      if (streamedRes.statusCode == 401 || streamedRes.statusCode == 403) {
+        return RecognitionResult.error(
+          'Błąd RapidAPI (${streamedRes.statusCode}): Nieprawidłowy klucz lub brak aktywnej subskrypcji "Shazam API free" na RapidAPI.',
+        );
       }
-    } catch (e) {
-      print('DEBUG [SongRecognitionService] Shazam API Free: $e');
-    }
 
-    // 2. Próba przez Shazam Core (shazam-core.p.rapidapi.com / file)
-    try {
-      final uri = Uri.parse('https://shazam-core.p.rapidapi.com/v1/tracks/recognize');
-      final req = http.MultipartRequest('POST', uri);
-      req.headers['X-RapidAPI-Key'] = apiKey;
-      req.headers['X-RapidAPI-Host'] = 'shazam-core.p.rapidapi.com';
-      req.files.add(
-        http.MultipartFile.fromBytes('file', audioBytes, filename: 'sample.mp3'),
-      );
-
-      final res = await req.send().timeout(const Duration(seconds: 15));
-      final respBody = await res.stream.bytesToString();
-
-      if (res.statusCode == 200) {
-        final parsed = _parseShazamResponse(respBody);
-        if (parsed != null) return parsed;
+      if (streamedRes.statusCode == 429) {
+        return RecognitionResult.error('Błąd RapidAPI (429): Wyczerpano limit zapytań lub zbyt częste zapytania.');
       }
-    } catch (e) {
-      print('DEBUG [SongRecognitionService] Shazam Core: $e');
-    }
 
-    return null;
+      if (streamedRes.statusCode == 200) {
+        final parsed = _parseShazamResponse(respBody);
+        if (parsed != null) {
+          return RecognitionResult.success(parsed);
+        } else {
+          return RecognitionResult.error('Shazam nie rozpoznał utworu (może trwają reklamy lub audycja).');
+        }
+      }
+
+      return RecognitionResult.error('Błąd serwera RapidAPI: status ${streamedRes.statusCode}');
+    } catch (e) {
+      return RecognitionResult.error('Błąd połączenia z Shazam: $e');
+    }
   }
 
   static RecognizedSong? _parseShazamResponse(String respBody) {
@@ -184,45 +189,6 @@ class SongRecognitionService {
         }
       }
     } catch (_) {}
-    return null;
-  }
-
-  /// Zapytanie do bazy AudD
-  static Future<RecognizedSong?> _recognizeViaAudd(
-    List<int> audioBytes,
-    String? token,
-  ) async {
-    try {
-      final effectiveToken = (token != null && token.trim().isNotEmpty) ? token.trim() : 'test';
-      final uri = Uri.parse('https://api.audd.io/');
-      final req = http.MultipartRequest('POST', uri);
-      req.fields['api_token'] = effectiveToken;
-      req.files.add(
-        http.MultipartFile.fromBytes('file', audioBytes, filename: 'sample.mp3'),
-      );
-
-      final res = await req.send().timeout(const Duration(seconds: 15));
-      final respBody = await res.stream.bytesToString();
-
-      if (res.statusCode == 200) {
-        final data = json.decode(respBody) as Map<String, dynamic>;
-        if (data['status'] == 'success' && data['result'] != null) {
-          final result = data['result'] as Map<String, dynamic>;
-          final artist = result['artist'] as String?;
-          final title = result['title'] as String?;
-          if (artist != null && title != null && artist.isNotEmpty && title.isNotEmpty) {
-            return RecognizedSong(
-              artist: artist.trim(),
-              title: title.trim(),
-              album: result['album'] as String?,
-              songLink: result['song_link'] as String?,
-            );
-          }
-        }
-      }
-    } catch (e) {
-      print('DEBUG [SongRecognitionService] Błąd AudD: $e');
-    }
     return null;
   }
 }

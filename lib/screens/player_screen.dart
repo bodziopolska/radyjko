@@ -185,30 +185,62 @@ class PlayerScreen extends StatelessWidget {
               ),
               if (currentSong != null && currentSong.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final query = Uri.encodeComponent(currentSong);
-                    final url = Uri.parse('spotify:search:$query');
-                    final webUrl = Uri.parse('https://open.spotify.com/search/$query');
-                    try {
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url);
-                      } else {
-                        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-                      }
-                    } catch (_) {
-                      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-                    }
-                  },
-                  icon: const Icon(Icons.music_note, size: 18),
-                  label: Text(strings.searchInSpotify),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1DB954),
-                    side: const BorderSide(color: Color(0xFF1DB954)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final query = Uri.encodeComponent(currentSong);
+                        final url = Uri.parse('spotify:search:$query');
+                        final webUrl = Uri.parse('https://open.spotify.com/search/$query');
+                        try {
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url);
+                          } else {
+                            await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+                          }
+                        } catch (_) {
+                          await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      icon: const Icon(Icons.music_note, size: 18),
+                      label: Text(strings.searchInSpotify),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1DB954),
+                        side: const BorderSide(color: Color(0xFF1DB954)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    IconButton.outlined(
+                      tooltip: 'Rozpoznaj przez Shazam',
+                      icon: playerProvider.isRecognizing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.graphic_eq_rounded, size: 18),
+                      onPressed: playerProvider.isRecognizing
+                          ? null
+                          : () async {
+                              final rapidKey = context.read<SettingsProvider>().rapidApiKey;
+                              final error = await playerProvider.recognizeCurrentSong(rapidApiKey: rapidKey);
+                              if (!context.mounted) return;
+                              if (error != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(error),
+                                    duration: const Duration(seconds: 4),
+                                    backgroundColor: theme.colorScheme.error,
+                                  ),
+                                );
+                              }
+                            },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
               ] else ...[
@@ -244,13 +276,14 @@ class PlayerScreen extends StatelessWidget {
                     OutlinedButton.icon(
                       onPressed: () async {
                         final rapidKey = context.read<SettingsProvider>().rapidApiKey;
-                        final success = await playerProvider.recognizeCurrentSong(rapidApiKey: rapidKey);
+                        final error = await playerProvider.recognizeCurrentSong(rapidApiKey: rapidKey);
                         if (!context.mounted) return;
-                        if (!success) {
+                        if (error != null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Nie udało się rozpoznać utworu (może trwają reklamy lub audycja?)'),
-                              duration: Duration(seconds: 3),
+                            SnackBar(
+                              content: Text(error),
+                              duration: const Duration(seconds: 4),
+                              backgroundColor: theme.colorScheme.error,
                             ),
                           );
                         }
