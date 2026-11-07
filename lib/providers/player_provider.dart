@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,6 +35,48 @@ class PlayerProvider extends ChangeNotifier {
 
   bool _isRecognizing = false;
   bool get isRecognizing => _isRecognizing;
+
+  bool _isManualSong = false;
+  bool get isManualSong => _isManualSong;
+
+  DateTime? _manualSongExpiresAt;
+  Timer? _manualSongTimer;
+
+  int get manualSongRemainingSeconds {
+    if (!_isManualSong || _manualSongExpiresAt == null) return 0;
+    final diff = _manualSongExpiresAt!.difference(DateTime.now()).inSeconds;
+    return diff > 0 ? diff : 0;
+  }
+
+  void clearManualSong() {
+    _manualSongTimer?.cancel();
+    _manualSongTimer = null;
+    _manualSongExpiresAt = null;
+    _isManualSong = false;
+    _currentSong = null;
+    _currentArtwork = null;
+    final station = _currentStation;
+    if (station != null) {
+      final customLogo = _customLogoGetter?.call(station.stationUuid);
+      _handler.resetToStation(
+        stationName: station.name,
+        artUri: customLogo ?? station.bestFavicon,
+      );
+    }
+    notifyListeners();
+  }
+
+  void _startManualSongTimer({Duration duration = const Duration(minutes: 3, seconds: 30)}) {
+    _manualSongTimer?.cancel();
+    _manualSongExpiresAt = DateTime.now().add(duration);
+    _manualSongTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!_isManualSong || manualSongRemainingSeconds <= 0) {
+        clearManualSong();
+      } else {
+        notifyListeners();
+      }
+    });
+  }
 
   bool Function(String)? _isItunesDisabledCheck;
   void setItunesDisabledChecker(bool Function(String) checker) {
@@ -98,37 +141,58 @@ class PlayerProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    _handler.mediaItem.listen((item) async {
-      final title = item?.displayTitle;
-      if (title != null && title.isNotEmpty && !_isJunkSongTitle(title, _currentStation)) {
-        final newSong = title;
-        if (_currentSong != newSong) {
-          _currentSong = newSong;
-          _currentArtwork = null;
-          final stationId = _currentStation?.stationUuid ?? '';
-          final customLogo = _customLogoGetter?.call(stationId);
-          _handler.updateArtwork(customLogo ?? _currentStation?.bestFavicon ?? '');
-          notifyListeners();
-          
-          if (!(_isItunesDisabledCheck?.call(stationId) ?? false)) {
-            try {
-              final artwork = await ItunesService.getArtwork(newSong);
-              if (artwork != null && _currentSong == newSong) {
-                _currentArtwork = artwork;
-                _handler.updateArtwork(artwork);
-                notifyListeners();
-              }
-            } catch (_) {}
-          }
-        }
-      } else {
-        if (_currentSong != null || _currentArtwork != null) {
+    _handler.player.icyMetadataStream.listen((metadata) async {
+      final rawTitle = metadata?.info?.title;
+      if (rawTitle == null || rawTitle.trim().isEmpty) return;
+      final songTitle = RadioAudioHandler.decodeHtmlEntities(rawTitle).trim();
+      if (songTitle.isEmpty) return;
+
+      if (_isJunkSongTitle(songTitle, _currentStation)) {
+        if (!_isManualSong && (_currentSong != null || _currentArtwork != null)) {
           _currentSong = null;
           _currentArtwork = null;
-          final stationId = _currentStation?.stationUuid ?? '';
-          final customLogo = _customLogoGetter?.call(stationId);
-          _handler.updateArtwork(customLogo ?? _currentStation?.bestFavicon ?? '');
+          final station = _currentStation;
+          if (station != null) {
+            final customLogo = _customLogoGetter?.call(station.stationUuid);
+            _handler.resetToStation(
+              stationName: station.name,
+              artUri: customLogo ?? station.bestFavicon,
+            );
+          }
           notifyListeners();
+        }
+        return;
+      }
+
+      if (_currentSong != songTitle) {
+        _manualSongTimer?.cancel();
+        _manualSongTimer = null;
+        _manualSongExpiresAt = null;
+        _isManualSong = false;
+        _currentSong = songTitle;
+        _currentArtwork = null;
+
+        final station = _currentStation;
+        final stationId = station?.stationUuid ?? '';
+        final customLogo = _customLogoGetter?.call(stationId);
+        final stationLogo = customLogo ?? station?.bestFavicon;
+
+        _handler.updateMediaDetails(
+          title: songTitle,
+          artist: station?.name,
+          artUri: stationLogo,
+        );
+        notifyListeners();
+
+        if (!(_isItunesDisabledCheck?.call(stationId) ?? false)) {
+          try {
+            final artwork = await ItunesService.getArtwork(songTitle);
+            if (artwork != null && _currentSong == songTitle) {
+              _currentArtwork = artwork;
+              _handler.updateArtwork(artwork);
+              notifyListeners();
+            }
+          } catch (_) {}
         }
       }
     });
@@ -167,7 +231,11 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
 
+    _manualSongTimer?.cancel();
+    _manualSongTimer = null;
+    _manualSongExpiresAt = null;
     _currentStation = station;
+    _isManualSong = false;
     _currentSong = null;
     _currentArtwork = null;
     _isBuffering = true;
@@ -213,18 +281,24 @@ class PlayerProvider extends ChangeNotifier {
       if (result.isSuccess && result.song != null) {
         final recognized = result.song!;
         final newSong = recognized.fullTitle;
+        _isManualSong = true;
         _currentSong = newSong;
         _currentArtwork = recognized.artworkUrl;
 
         final stationId = station.stationUuid;
         final customLogo = _customLogoGetter?.call(stationId);
+        final stationLogo = customLogo ?? station.bestFavicon;
 
-        if (_currentArtwork != null) {
-          _handler.updateArtwork(_currentArtwork!);
-        } else {
-          _handler.updateArtwork(customLogo ?? station.bestFavicon);
-        }
+        // Immediately update notification title, artist, and artwork
+        _handler.updateMediaDetails(
+          title: recognized.title.isNotEmpty ? recognized.title : newSong,
+          artist: recognized.artist.isNotEmpty ? recognized.artist : station.name,
+          artUri: _currentArtwork ?? stationLogo,
+        );
         notifyListeners();
+
+        // Start 3.5 minute auto-clear timer
+        _startManualSongTimer();
 
         if (_currentArtwork == null && !(_isItunesDisabledCheck?.call(stationId) ?? false)) {
           try {
@@ -236,7 +310,7 @@ class PlayerProvider extends ChangeNotifier {
             }
           } catch (_) {}
         }
-        return null; // null oznacza sukces
+        return null;
       } else {
         return result.errorMessage ?? 'Nie udało się rozpoznać utworu.';
       }
@@ -260,8 +334,12 @@ class PlayerProvider extends ChangeNotifier {
 
   /// Completely stops playback, clears the current station, and dismisses the notification.
   Future<void> stop() async {
+    _manualSongTimer?.cancel();
+    _manualSongTimer = null;
+    _manualSongExpiresAt = null;
     await _handler.stop();
     _currentStation = null;
+    _isManualSong = false;
     _currentSong = null;
     _currentArtwork = null;
     _isPlaying = false;
@@ -310,6 +388,7 @@ class PlayerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _manualSongTimer?.cancel();
     _handler.player.dispose();
     super.dispose();
   }

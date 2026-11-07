@@ -8,7 +8,7 @@ class RadioAudioHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player = AudioPlayer();
 
   /// Decodes HTML entities like &#281; -> ę, &#x142; -> ł, &amp; -> &
-  static String _decodeHtmlEntities(String text) {
+  static String decodeHtmlEntities(String text) {
     // Decode numeric entities: &#NNN;
     text = text.replaceAllMapped(
       RegExp(r'&#(\d+);'),
@@ -39,21 +39,6 @@ class RadioAudioHandler extends BaseAudioHandler with SeekHandler {
     // Broadcast playback state changes to the system.
     _player.playbackEventStream.map(_transformEvent).listen((state) {
       playbackState.add(state);
-    });
-
-    // Listen to ICY metadata (Icecast/Shoutcast) for current song info.
-    _player.icyMetadataStream.listen((metadata) {
-      final currentItem = mediaItem.value;
-      if (currentItem != null && metadata?.info?.title != null) {
-        final songTitle = _decodeHtmlEntities(metadata!.info!.title!);
-        // Update notification to show song title.
-        mediaItem.add(currentItem.copyWith(
-          title: songTitle,
-          artist: currentItem.album,
-          displayTitle: songTitle,
-          displaySubtitle: currentItem.album,
-        ));
-      }
     });
   }
 
@@ -119,12 +104,19 @@ class RadioAudioHandler extends BaseAudioHandler with SeekHandler {
     String? album,
   }) async {
     _isPaused = false;
+    final stationName = title;
+    final artistSubtitle = album ?? stationName;
+    final uri = (artUri != null && artUri.isNotEmpty) ? Uri.tryParse(artUri) : null;
+
     // Update the media item metadata shown in the notification.
     final item = MediaItem(
       id: url,
-      title: title,
-      album: album ?? 'RadyjkoON',
-      artUri: artUri != null && artUri.isNotEmpty ? Uri.tryParse(artUri) : null,
+      title: stationName,
+      album: artistSubtitle,
+      artist: artistSubtitle,
+      displayTitle: stationName,
+      displaySubtitle: artistSubtitle,
+      artUri: uri,
       playable: true,
     );
     mediaItem.add(item);
@@ -135,6 +127,57 @@ class RadioAudioHandler extends BaseAudioHandler with SeekHandler {
       await _player.play();
     } catch (e) {
       // Error is propagated through the just_audio event stream.
+    }
+  }
+
+  /// Updates notification with song title, artist/station, and optional artwork.
+  void updateMediaDetails({
+    required String title,
+    String? artist,
+    String? artUri,
+  }) {
+    final currentItem = mediaItem.value;
+    if (currentItem != null) {
+      final uri = (artUri != null && artUri.isNotEmpty) ? Uri.tryParse(artUri) : null;
+      mediaItem.add(MediaItem(
+        id: currentItem.id,
+        title: title,
+        album: currentItem.album,
+        artist: artist ?? currentItem.album,
+        genre: currentItem.genre,
+        duration: currentItem.duration,
+        artUri: uri ?? currentItem.artUri,
+        playable: currentItem.playable,
+        displayTitle: title,
+        displaySubtitle: artist ?? currentItem.album,
+        displayDescription: currentItem.displayDescription,
+        extras: currentItem.extras,
+      ));
+    }
+  }
+
+  /// Reverts notification back to station name and station logo.
+  void resetToStation({
+    required String stationName,
+    String? artUri,
+  }) {
+    final currentItem = mediaItem.value;
+    if (currentItem != null) {
+      final uri = (artUri != null && artUri.isNotEmpty) ? Uri.tryParse(artUri) : null;
+      mediaItem.add(MediaItem(
+        id: currentItem.id,
+        title: stationName,
+        album: currentItem.album,
+        artist: currentItem.album,
+        genre: currentItem.genre,
+        duration: currentItem.duration,
+        artUri: uri,
+        playable: currentItem.playable,
+        displayTitle: stationName,
+        displaySubtitle: currentItem.album,
+        displayDescription: currentItem.displayDescription,
+        extras: currentItem.extras,
+      ));
     }
   }
 

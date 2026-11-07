@@ -1,6 +1,6 @@
 {
-  "version": "1.0.5 Beta",
-  "build": 6,
-  "apk_url": "https://github.com/bodziopolska/radyjko/releases/download/v1.0.5-beta/radyjko-app.apk",
-  "changelog": "- Naprawa rozpoznawania muzyki przez Shazam (czysty bufor audio i obsługa przekierowań)\n- Inteligentne filtrowanie fałszywych tytułów (np. stacja nadająca własną nazwę 'Radio Freee')\n- Przycisk ponownego rozpoznania utworu w odtwarzaczu (obok Spotify)\n- Czytelne i pomocne komunikaty o błędach w razie problemów z kluczem RapidAPI"
+  "version": "1.0.6 Beta",
+  "build": 7,
+  "apk_url": "https://github.com/bodziopolska/radyjko/releases/download/v1.0.6-beta/radyjko-app.apk",
+  "changelog": "- Aktualizacja tytułu i wykonawcy w powiadomieniu systemowym po rozpoznaniu piosenki\n- Widoczny licznik czasu wygasania rozpoznanego utworu z odliczaniem na żywo (3:30)\n- Przycisk szybkiego wyczyszczenia (✕) rozpoznanego utworu\n- Blokada nadpisywania powiadomienia przez stacje nadające fałszywe metadane strumienia"
 }

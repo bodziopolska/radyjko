@@ -242,6 +242,47 @@ class PlayerScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (playerProvider.isManualSong) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 14,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Rozpoznano • znika za ${_formatRemainingTime(playerProvider.manualSongRemainingSeconds)}',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () => playerProvider.clearManualSong(),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Icon(
+                            Icons.close,
+                            size: 16,
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
               ] else ...[
                 const SizedBox(height: 10),
@@ -405,6 +446,12 @@ class PlayerScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatRemainingTime(int sec) {
+    final m = sec ~/ 60;
+    final s = sec % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 
   Widget _buildSongText(String text, ThemeData theme) {

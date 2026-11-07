@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class RecognizedSong {
   final String artist;
@@ -41,7 +42,7 @@ class SongRecognitionService {
     try {
       final req = await client.getUrl(Uri.parse(streamUrl));
       req.headers.set('User-Agent', 'RadyjkoON/1.0');
-      req.headers.set('Icy-MetaData', '0'); // Wyłącz wstrzykiwanie napisów ICY do danych audio
+      req.headers.set('Icy-MetaData', '0'); // Wyłącz wstrzykiwanie napisów ICY do strumienia audio
       final res = await req.close().timeout(const Duration(seconds: 8));
 
       if (res.statusCode != 200) {
@@ -96,7 +97,6 @@ class SongRecognitionService {
   static Future<RecognitionResult> recognizeFromStream(
     String streamUrl, {
     String? rapidApiKey,
-    String? auddToken,
   }) async {
     if (rapidApiKey == null || rapidApiKey.trim().isEmpty) {
       return RecognitionResult.error(
@@ -118,12 +118,18 @@ class SongRecognitionService {
     String apiKey,
   ) async {
     try {
+      final cleanedKey = apiKey.trim().replaceAll('"', '').replaceAll("'", "");
       final uri = Uri.parse('https://shazam-api-free.p.rapidapi.com/shazam/recognize/');
       final req = http.MultipartRequest('POST', uri);
-      req.headers['X-RapidAPI-Key'] = apiKey;
+      req.headers['X-RapidAPI-Key'] = cleanedKey;
       req.headers['X-RapidAPI-Host'] = 'shazam-api-free.p.rapidapi.com';
       req.files.add(
-        http.MultipartFile.fromBytes('upload_file', audioBytes, filename: 'sample.mp3'),
+        http.MultipartFile.fromBytes(
+          'upload_file',
+          audioBytes,
+          filename: 'sample.mp3',
+          contentType: MediaType('audio', 'mpeg'),
+        ),
       );
 
       final streamedRes = await req.send().timeout(const Duration(seconds: 15));
@@ -134,7 +140,7 @@ class SongRecognitionService {
 
       if (streamedRes.statusCode == 401 || streamedRes.statusCode == 403) {
         return RecognitionResult.error(
-          'Błąd RapidAPI (${streamedRes.statusCode}): Nieprawidłowy klucz lub brak aktywnej subskrypcji "Shazam API free" na RapidAPI.',
+          'Błąd RapidAPI (${streamedRes.statusCode}): Nieprawidłowy klucz lub brak aktywnej darmowej subskrypcji "Shazam API free" na RapidAPI.',
         );
       }
 
